@@ -17,7 +17,7 @@ namespace CadastroPessoa
     public class Users
     {
         #region Propriedades
-        private string nome = string.Empty;
+        private string nome;
         public string Nome
         {
             get { return nome; }
@@ -37,6 +37,8 @@ namespace CadastroPessoa
             get { return cpf; }
             set { cpf = value; }
         }
+
+        public int Id { get; set; }
 
         public string cep { get; set; }
         public string complemento { get; set; }
@@ -114,6 +116,8 @@ namespace CadastroPessoa
 
         public bool validacaoCpfUsuario()
         {
+            // criar validação que não permite o usuario cadastrar CPF igual para que seja mais dinamico os cadastros.
+
             RemoverMascaraCpf();
             if (!string.IsNullOrEmpty(Cpf) && Cpf.Length == 11)
             {
@@ -135,7 +139,6 @@ namespace CadastroPessoa
 
         public void dataNascimentoCadastro()
         {
-
             if (!string.IsNullOrEmpty(DataDeNascimento) && DataDeNascimento.Length == 8)
             {
                 dataDeNascimento = DataDeNascimento.Insert(2, "/").Insert(5, "/");
@@ -145,15 +148,18 @@ namespace CadastroPessoa
                     Idade = DateTime.Now.Year - anoNascimentoUsuario;
                 }
             }
-            else if (string.IsNullOrEmpty(DataDeNascimento))
+            else if (string.IsNullOrEmpty(DataDeNascimento) || DataDeNascimento.Length < 8)
             {
-                /* Adicionar tratamento na mensagem de erro pra quando o usuário optar por não informar e quando informar 1 ou mais valores */
-                Console.WriteLine($"Data de Nascimento não informada. Para prosseguir com o cadastro, informe a Idade do usuário.");
-                Console.Write("Informe a Idade do usuário: ");
+                if (!string.IsNullOrEmpty(DataDeNascimento))
+                {
+                    Console.WriteLine($"Data de Nascimento informada incorreta.");
+                }
+                else
+                {
+                    Console.WriteLine($"Data de Nascimento não informada.");
+                }
+                Console.Write("Para prosseguir, informe a Idade do usuário: ");
                 Idade = Convert.ToInt32(Console.ReadLine());
-            }
-            else
-            {
                 dataDeNascimento = null;
             }
         }
@@ -184,38 +190,6 @@ namespace CadastroPessoa
                 telefone = $"Usuário optou por não cadastrar Telefone";
             }
         }
-
-
-        /* Test
-           foreach (var usuariosCdastrados in listaUsuariosCadastrados)
-             {
-                 var jsonCadastroUsuario = JsonConvert.SerializeObject(cadastro);
-                 var directoryJson = @"C:\\Users\\";
-                 var caminhoJson = Path.Combine(jsonCadastroUsuario, "listUsuario.json");
-                 File.WriteAllText(directoryJson, jsonCadastroUsuario);
-             }
-           */
-
-        /* Método ExibirDados
-        public void ExibirDados()
-        {
-            Console.WriteLine("Login Usuário: " + Nome);
-            Console.WriteLine("CPF Usuário: " + cpf);
-            Console.WriteLine("Idade Usuário: " + Idade);
-
-            if (!string.IsNullOrEmpty(DataDeNascimento))
-            {
-                Console.WriteLine("Data de Nascimento: " + DataDeNascimento);
-            }
-            else
-            {
-                Console.WriteLine($"Data de Nascimento: O usuário optou por informar apenas a 'Idade'");
-            }
-
-            //Console.WriteLine("Sexo: " + Sexo);
-            //Console.WriteLine("Telefone: " + Telefone);
-        }
-        */
 
         #endregion
 
