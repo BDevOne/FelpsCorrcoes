@@ -1,4 +1,4 @@
-﻿using CadastroPessoa;
+using CadastroPessoa;
 using project.IntegracaoCep;
 using System;
 using System.Collections.Generic;
@@ -11,6 +11,15 @@ namespace project
 {
     public class UsuarioLogin
     {
+        //Verificar possibilidade de implementar funcionalidade de cadastro de produtos por usuário.
+        //Adicionar cadastro de produtos por usuário, usuário poderar optar por produtos ex: (Tenis, Blusa, calça, etc...)
+
+        List<Users> usuariosValidos = new List<Users>();
+        List<Users> usuariosInvalidos = new List<Users>();
+        List<Users> listaCadastros = new List<Users>();
+
+        private bool listaAcessada = false;
+
         public void TelaDeLogin()
         {
             Console.WriteLine("Bem vindo à Tela de Login\n");
@@ -19,21 +28,17 @@ namespace project
 
         public async Task CadastroLogin()
         {
-            List<Users> listaCadastros = new List<Users>();
-
             string seguirCadastrosUsuarios = "S";
 
-            //Adicionar cadastro de produtos por usuário, usuário poderar optar por produtos ex: (Tenis, Blusa, calça, etc...)
-            //Verificar possibilidade de implementar funcionalidade de cadastro de produtos por usuário.
-
-            //Adicionar busca CEP via API
+            Random IdUsuario = new Random();
 
             // verificação caso o S for um valor nulo aguardar o valor correto, em andamento..
             while (!string.IsNullOrEmpty(seguirCadastrosUsuarios) && seguirCadastrosUsuarios.ToUpper() == "S")
             {
+                //viaCepApi resultadoCep = new viaCepApi();
                 Users cadastros = new Users();
-                viaCepApi resultadoCep = new viaCepApi();
 
+                cadastros.Id = IdUsuario.Next(0, 80);
                 Console.Write("\nNome do usuário: ");
                 cadastros.Nome = Console.ReadLine();
 
@@ -45,22 +50,6 @@ namespace project
                 cadastros.dataNascimentoCadastro();
 
                 /* UsingCase
-                if (!string.IsNullOrEmpty(cadastros.DataDeNascimento))
-                {
-                    string[] separarAno = cadastros.DataDeNascimento.Split('/');
-                    if (separarAno.Length >= 3 && int.TryParse(separarAno[2], out int anoNascimentoUsuario) && cadastros.Idade <= 0)
-                    {
-                        cadastros.Idade = DateTime.Now.Year - anoNascimentoUsuario;
-                    }
-                }
-                else if (string.IsNullOrEmpty(cadastros.DataDeNascimento))
-                {
-                    Adicionar tratamento na mensagem de erro pra quando o usuário optar por não informar e quando informar 1 ou mais valores 
-                    Console.WriteLine($"Data de Nascimento não informada. Para prosseguir com o cadastro, informe a Idade do usuário.");
-                    Console.Write("Informe a Idade do usuário: ");
-                    cadastros.Idade = Convert.ToInt32(Console.ReadLine());
-                }
-
                 Console.Write("\nInforme o CEP: ");
                 cadastros.cep = Console.ReadLine();
                 cadastros.Endereco = await resultadoCep.BuscarCepUsuario(cadastros.cep);
@@ -72,48 +61,58 @@ namespace project
                 seguirCadastrosUsuarios = Console.ReadLine();
             }
 
-            ExibirDadosUsuariosCadastrados(listaCadastros);
-
+            handleUserAction();
+            gerarListaCadastros(listaCadastros);
+            ExibirDadosUsuariosCadastrados();
         }
 
-        public void ExibirDadosUsuariosCadastrados(List<Users> listaCadastros)
+        // Método Criar lista Cadastros
+        public void gerarListaCadastros(List<Users> listaCadastros)
         {
-            List<Users> usuariosValidos = new List<Users>();
-            List<Users> usuariosInvalidos = new List<Users>();
-
-            Console.WriteLine($"\nDados do Usuários\n");
-
+            // Lista de Cadastros
             foreach (var user in listaCadastros)
             {
                 // user.RemoverMascaraCpf();
-                // Adicionar mensagem do por que não foi cadastrado CPF ou Idade.
                 if (user.validacaoCpfUsuario() && user.validarIdadeUsuario())
                 {
-                    usuariosValidos.Add(user);
+                    // adicionar validação de cadastro iguais pelo cpf
+                    if (!usuariosValidos.Exists(u => u.Cpf == user.Cpf))
+                    {
+                        usuariosValidos.Add(user);
+                    }
+                    else
+                    {
+                        string cpfIgual = user.Cpf;
+                        usuariosInvalidos.Add(user);
+                        user.Cpf = $"CPF já cadastrado: {cpfIgual}";
+                    }
                 }
                 else
                 {
                     usuariosInvalidos.Add(user);
                 }
             }
+        }
 
-            if (usuariosValidos.Count > 0)
+        public void ExibirDadosUsuariosCadastrados()
+        {
+            Console.WriteLine($"\nDados dos Usuários\n");
+
+            // Lista de Usuários cadastrados Válidos
+            if (usuariosValidos.Count > 0) // Foi verificado que ao editar está sendo validado todo o processo novamente e isso esta duplicando o cadastro. -- Corrigido
             {
                 Console.WriteLine("Usuários cadastrados");
                 foreach (var user in usuariosValidos)
                 {
+                    Console.WriteLine($"\nID do Usuário: {user.Id}");
                     Console.WriteLine($"\nNome: {user.Nome}");
                     Console.WriteLine($"CPF: {user.Cpf}");
-                    Console.WriteLine($"Data de Nascimento: {user.DataDeNascimento}"); // Add verificação caso o usuario informe apenas a idade não apresentar a data de nascimento vazia.
-                    Console.WriteLine($"Idade: {user.Idade}");
 
-                    //user.tratarCepCadastro();
-                    //Console.WriteLine("\n\nEndereço encontrado:");
-                    //Console.WriteLine($"CEP: {user.cep}");
-                    //Console.WriteLine($"Complemento: {user.complemento}");
-                    //Console.WriteLine($"Bairro: {user.bairro}");
-                    //Console.WriteLine($"Cidade: {user.localidade}");
-                    //Console.WriteLine($"UF: {user.Uf}");
+                    if (user.DataDeNascimento != null)
+                    {
+                        Console.WriteLine($"Data de Nascimento: {user.DataDeNascimento}");
+                    }
+                    Console.WriteLine($"Idade: {user.Idade}");
                 }
             }
             else
@@ -121,13 +120,14 @@ namespace project
                 Console.WriteLine("Nenhum Usuário cadastrado");
             }
 
+            // Lista de Usuários não cadastrados
             if (usuariosInvalidos.Count > 0)
             {
                 Console.WriteLine("\nUsuários não cadastrados");
                 foreach (var user in usuariosInvalidos)
                 {
                     Console.WriteLine($"\nNome: {user.Nome}");
-                    if (user.Cpf.Length < 11 || user.Idade < 18)
+                    if (user.Cpf.Length < 11 || user.validarIdadeUsuario())
                     {
                         Console.WriteLine("CPF: Não informado ou Incorreto.");
                     }
@@ -144,43 +144,78 @@ namespace project
                 Console.WriteLine("\nTodos Usuários Foram cadastrados corretamente.");
             }
 
-            // Verificar se o cadastro foi concluído, caso tenha sido apresentar os dados do usuários e perguntar se o adm deseja remover algum dos usuários.
-            // criar validação na lista que não permite o usuario cadastrar cpf igual para que seja mais dinamico os cadastros.
-            // Criar validacao por ID, que caso tenha mais de 1 pedro ele não exclui os demais
+            // Criar validacao por ID caso tenha nomes iguais, não exclui os demais com o mesmo nome.
+        }
 
-            foreach (var user in usuariosValidos)
+        // Criar método com a solicitação dos dados de usuario - Nome, CPF, Idade, Nascimento, etc...
+        public void handleUserAction()
+        {
+            Console.WriteLine("Opções '1' / '2' / '3'");
+            string action = Console.ReadLine();
+            switch (action)
             {
-                string removerUsuariosListaCadastrados = "S";
-                Console.Write("\nDeseja remover algum usuário? ");
-                removerUsuariosListaCadastrados = Console.ReadLine();
+                case "1":
+                Console.WriteLine("Cadastrar Usuário");
+                CadastroLogin();
+                break;
 
-                //Erro loop, ele sempre valida que existe usuário e remove todos. Criar tratamento para que seja possivel remover so usuários cadastrados que foram informados.
-                while (!string.IsNullOrEmpty(removerUsuariosListaCadastrados) && removerUsuariosListaCadastrados == "S".ToUpper())
-                {
-                    if (usuariosValidos != null)
-                    {
-                        Console.Write("\nQual Usuário deseja remover do cadastro? ");
-                        user.Nome = Console.ReadLine();
-                        Users usuarioRemover = usuariosValidos.FirstOrDefault(u => u.Nome.Equals(user.Nome, StringComparison.OrdinalIgnoreCase));
+                case "2":
+                Console.WriteLine("Excluir Usuário");
+                removerCadastros();
+                break;
 
-                        if (usuarioRemover != null)
-                        {
-                            usuariosValidos.Remove(usuarioRemover);
-                            Console.WriteLine($"\nUsuário {user.Nome} Removido!!\n");
+                case "3":
+                Console.WriteLine("Editar Usuário");
+                editarCadastro();
+                break;
 
-                            Console.Write("Deseja remover algum usuário? ");
-                            removerUsuariosListaCadastrados = Console.ReadLine();
-                        }
-                    }
-                }
+                default:
+                Console.WriteLine("Deu bom não DOG");
                 break;
             }
         }
 
-        public void removerCadastroUsuario(List<Users> remover)
+        // Implementar também a verificação da lista de usuariosInvalidos para que seja possivel editar e torna-lo valido. -- Corrigido Aguardando correçaõ abaixo
+        // Implemntar a edição de outras informações para que seja possível editar usuariosInvalidos.
+        public void editarCadastro()
         {
+            Console.Write("\nQual Usuário deseja editar ? ");
+            string nomeAlterado = Console.ReadLine();
+            foreach (var editarUsuario in listaCadastros)
+            {
+                Users usuarioAlterado = listaCadastros.FirstOrDefault(u => u.Nome.Equals(editarUsuario.Nome, StringComparison.OrdinalIgnoreCase));
+
+                if (usuarioAlterado.Nome.Equals(nomeAlterado, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.Write("\nInforme o novo nome do usuário: ");
+                    string novoNome = Console.ReadLine();
+                    editarUsuario.Nome = novoNome;
+                    break;
+                }
+            }
+            Console.WriteLine("Lista de cadastros Atualizada");
+            ExibirDadosUsuariosCadastrados();
+
+        }
         
-            ExibirDadosUsuariosCadastrados(remover);
+        // Adicionar validação pelo ID ao invés do nome, para que não seja excluido os cadastros com o mesmo usuário.
+        public void removerCadastros()
+        {
+            Console.Write("\nQual Usuário deseja remover do cadastro? ");
+            string usuarioRemovido = Console.ReadLine();
+
+            foreach (var user in listaCadastros)
+            {
+                Users usuarioRemover = listaCadastros.FirstOrDefault(u => u.Nome.Equals(usuarioRemovido, StringComparison.OrdinalIgnoreCase));
+
+                if (usuarioRemover.Nome.Equals(user.Nome, StringComparison.OrdinalIgnoreCase))
+                {
+                    listaCadastros.Remove(usuarioRemover);
+                    Console.WriteLine($"\nUsuário {user.Nome} Removido!!\n");
+                    break;
+                }
+
+            }
         }
 
         void ExibirErroCadastrarUsuario(string mensagemErro)
